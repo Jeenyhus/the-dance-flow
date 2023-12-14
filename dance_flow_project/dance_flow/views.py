@@ -1,5 +1,9 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth import authenticate, login
+from rest_framework.authtoken.models import Token
 from .models import Instructor, Dancer, DanceStudio, Subscription, User, UserProfile
 from .serializers import InstructorSerializer, UserProfileSerializer, DancerSerializer, DanceStudioSerializer, SubscriptionSerializer
 from django.http import HttpResponse
@@ -112,3 +116,28 @@ def calculate_end_date_one_session():
 
 def HomeView(request):
     return HttpResponse("Welcome to Dance Flow!")
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard(request):
+    # Your logic to retrieve dashboard metrics goes here
+    metrics = {
+        'totalStudios': 10,
+        'totalInstructors': 20,
+        'totalDancers': 30,
+    }
+    return Response(metrics)
+
+@api_view(['POST'])
+def user_login(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(request, username=username, password=password)
+
+    if user is not None:
+        login(request, user)
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key})
+    else:
+        return Response({'error': 'Invalid credentials'}, status=400)
